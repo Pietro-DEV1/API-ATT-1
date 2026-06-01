@@ -1,9 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using API_2.Data;
 using API_2.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace API_2.Controllers
 {
@@ -11,17 +9,76 @@ namespace API_2.Controllers
     [Route("api/[controller]")]
     public class CarroController : ControllerBase
     {
-        private static List<Carro> carros = new List<Carro>
-        {
-            new Carro {Id =1 , Marca = "Honda", Modelo = "Civic"},
-            new Carro {Id =2 , Marca = "Ford", Modelo = "Ka"},
-            new Carro {Id =3, Marca = "Fiat", Modelo = "Mobi"}
-        };
+        private readonly AppDbContext _context;
 
-        [HttpGet("ObterCarros")]
-        public ActionResult<List<Carro>> GetTodos()
+        public CarroController(AppDbContext context)
         {
-            return Ok(carros);
+            _context = context;
+        }
+
+        // GET: api/Carro/ObterCarros
+        [HttpGet("ObterCarros")]
+        public async Task<ActionResult<List<Carro>>> GetTodos()
+        {
+            return await _context.Carros.ToListAsync();
+        }
+
+        // GET: api/Carro/ObterCarroPorId/1
+        [HttpGet("ObterCarroPorId/{id}")]
+        public async Task<ActionResult<Carro>> GetPorId(int id)
+        {
+            var carro = await _context.Carros.FindAsync(id);
+
+            if (carro == null)
+                return NotFound("Carro não encontrado.");
+
+            return carro;
+        }
+
+        // POST: api/Carro/CriarCarro
+        [HttpPost("CriarCarro")]
+        public async Task<ActionResult<Carro>> CriarCarro(Carro novoCarro)
+        {
+            _context.Carros.Add(novoCarro);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(
+                nameof(GetPorId),
+                new { id = novoCarro.Id },
+                novoCarro
+            );
+        }
+
+        // PUT: api/Carro/AtualizarCarro/1
+        [HttpPut("AtualizarCarro/{id}")]
+        public async Task<ActionResult> AtualizarCarro(int id, Carro carroAtualizado)
+        {
+            var carro = await _context.Carros.FindAsync(id);
+
+            if (carro == null)
+                return NotFound("Carro não encontrado.");
+
+            carro.Marca = carroAtualizado.Marca;
+            carro.Modelo = carroAtualizado.Modelo;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(carro);
+        }
+
+        // DELETE: api/Carro/DeletarCarro/1
+        [HttpDelete("DeletarCarro/{id}")]
+        public async Task<ActionResult> DeletarCarro(int id)
+        {
+            var carro = await _context.Carros.FindAsync(id);
+
+            if (carro == null)
+                return NotFound("Carro não encontrado.");
+
+            _context.Carros.Remove(carro);
+            await _context.SaveChangesAsync();
+
+            return Ok("Carro removido com sucesso.");
         }
     }
 }
